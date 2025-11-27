@@ -74,6 +74,12 @@ class AxisReelsExploreScreen extends ConsumerStatefulWidget {
   /// Example: Use NeverScrollableScrollPhysics() when embedding in DraggableScrollableSheet
   final ScrollPhysics? physics;
 
+  /// Whether the ListView should shrinkWrap its content
+  /// Set to true when using with DraggableScrollableSheet for seamless scroll coordination
+  /// When true, scrolling continues from grid content to sheet at edges
+  /// Default: false
+  final bool shrinkWrap;
+
   const AxisReelsExploreScreen({
     super.key,
     this.reels,
@@ -87,6 +93,7 @@ class AxisReelsExploreScreen extends ConsumerStatefulWidget {
     this.showPlayButton = true,
     this.showMediaTypeIcon = true,
     this.physics,
+    this.shrinkWrap = false,
     this.padding,
     this.itemSpacing = 8.0,
     this.backgroundColor = Colors.transparent,
@@ -142,6 +149,7 @@ class _AxisReelsExploreScreenState
             ? ListView.builder(
                 controller: _effectiveScrollController,
                 physics: widget.physics,
+                shrinkWrap: widget.shrinkWrap,
                 itemCount: rows.length,
                 itemBuilder: (context, index) => _buildRow(context, rows[index], axisReelsState),
               )

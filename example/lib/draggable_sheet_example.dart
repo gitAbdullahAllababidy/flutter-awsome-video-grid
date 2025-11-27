@@ -3,7 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_awsome_video_grid/flutter_awsome_video_grid.dart';
 
 /// Example showing how to use AxisReelsExploreScreen with DraggableScrollableSheet
-/// This prevents dual scroll behavior by coordinating scroll physics
+///
+/// Key features:
+/// - Seamless scroll transition: When you reach the grid edge, scrolling continues to expand/collapse the sheet
+/// - Set shrinkWrap: true to enable this behavior
+/// - Wrap grid in SingleChildScrollView with the sheet's scrollController
+/// - No dual scroll behavior - smooth unified scrolling experience
 class DraggableSheetExample extends StatelessWidget {
   const DraggableSheetExample({super.key});
 
@@ -41,6 +46,26 @@ class DraggableSheetExample extends StatelessWidget {
                       color: Colors.white.withValues(alpha: 0.5),
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 40),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Text(
+                      'Seamless scroll:\nReach edge → continues to sheet',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ],
@@ -96,19 +121,30 @@ class DraggableSheetExample extends StatelessWidget {
                     const Divider(color: Colors.white12, height: 1),
 
                     // Video grid with coordinated scrolling
+                    //
+                    // HOW IT WORKS:
+                    // 1. SingleChildScrollView gets the sheet's scrollController
+                    // 2. AxisReelsExploreScreen uses shrinkWrap: true (doesn't take full height)
+                    // 3. When user scrolls:
+                    //    - Grid at top + scroll up → sheet collapses
+                    //    - Grid at bottom + scroll down → sheet expands
+                    //    - Middle of grid → normal grid scrolling
+                    // Result: Seamless unified scrolling experience!
                     Expanded(
-                      child: ProviderScope(
-                        child: AxisReelsExploreScreen(
-                          showAppBar: false,
-                          manageScroll: true,
-                          scrollController: scrollController,
-                          // Use ClampingScrollPhysics for smooth coordination
-                          physics: const ClampingScrollPhysics(),
-                          backgroundColor: Colors.transparent,
-                          showMediaTypeIcon: true,
-                          maxConcurrentVideos: 2,
-                          padding: const EdgeInsets.all(16),
-                          itemSpacing: 12,
+                      child: SingleChildScrollView(
+                        controller: scrollController,
+                        child: ProviderScope(
+                          child: AxisReelsExploreScreen(
+                            showAppBar: false,
+                            manageScroll: true,
+                            // CRITICAL: shrinkWrap enables seamless scroll transition
+                            shrinkWrap: true,
+                            backgroundColor: Colors.transparent,
+                            showMediaTypeIcon: true,
+                            maxConcurrentVideos: 2,
+                            padding: const EdgeInsets.all(16),
+                            itemSpacing: 12,
+                          ),
                         ),
                       ),
                     ),
