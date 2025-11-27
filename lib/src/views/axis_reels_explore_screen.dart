@@ -65,6 +65,15 @@ class AxisReelsExploreScreen extends ConsumerStatefulWidget {
   /// Default: 2 (good balance between UX and performance)
   final int? maxConcurrentVideos;
 
+  /// Whether to show media type icon (image/video) at bottom-left corner
+  /// Default: true
+  final bool showMediaTypeIcon;
+
+  /// Custom scroll physics for the grid
+  /// Useful for coordinating with DraggableScrollableSheet
+  /// Example: Use NeverScrollableScrollPhysics() when embedding in DraggableScrollableSheet
+  final ScrollPhysics? physics;
+
   const AxisReelsExploreScreen({
     super.key,
     this.reels,
@@ -76,6 +85,8 @@ class AxisReelsExploreScreen extends ConsumerStatefulWidget {
     this.scrollController,
     this.showVideoIndicator = false,
     this.showPlayButton = true,
+    this.showMediaTypeIcon = true,
+    this.physics,
     this.padding,
     this.itemSpacing = 8.0,
     this.backgroundColor = Colors.transparent,
@@ -130,6 +141,7 @@ class _AxisReelsExploreScreenState
         child: widget.manageScroll
             ? ListView.builder(
                 controller: _effectiveScrollController,
+                physics: widget.physics,
                 itemCount: rows.length,
                 itemBuilder: (context, index) => _buildRow(context, rows[index], axisReelsState),
               )
@@ -283,6 +295,24 @@ class _AxisReelsExploreScreenState
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        // Media type icon at bottom-left
+        if (widget.showMediaTypeIcon)
+          Positioned(
+            left: 8,
+            bottom: 8,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Icon(
+                Icons.image,
+                color: Colors.white,
+                size: 14,
+              ),
             ),
           ),
       ],
@@ -465,6 +495,25 @@ class _AxisReelsExploreScreenState
               child: CircularProgressIndicator(
                 color: Colors.white54,
                 strokeWidth: 2,
+              ),
+            ),
+          ),
+
+        // Media type icon at bottom-left
+        if (widget.showMediaTypeIcon)
+          Positioned(
+            left: 8,
+            bottom: 8,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Icon(
+                Icons.videocam,
+                color: Colors.white,
+                size: 14,
               ),
             ),
           ),
