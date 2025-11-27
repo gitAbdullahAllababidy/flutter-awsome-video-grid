@@ -1,23 +1,23 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_awsome_video_grid/src/models/axis_reel_model.dart';
-import 'package:flutter_awsome_video_grid/src/providers/axis_reels_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cached_video_player_plus/cached_video_player_plus.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_awsome_video_grid/src/models/axis_reel_model.dart';
+import 'package:flutter_awsome_video_grid/src/providers/axis_reels_provider.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 /// Builder for custom item foreground overlay
-typedef ItemForegroundBuilder = Widget Function(
-  BuildContext context,
-  AxisReelModel reel,
-  bool isVideoPlaying,
-);
+typedef ItemForegroundBuilder = Widget Function(BuildContext context, AxisReelModel reel, bool isVideoPlaying);
 
 /// Builder for custom item background
-typedef ItemBackgroundBuilder = Widget Function(
-  BuildContext context,
-  AxisReelModel reel,
-);
+typedef ItemBackgroundBuilder = Widget Function(BuildContext context, AxisReelModel reel);
+
+/// Builder for custom video thumbnail widget
+typedef VideoThumbnailBuilder = Widget Function(BuildContext context, AxisReelModel reel);
+
+/// Builder for custom image item widget
+typedef ImageItemBuilder = Widget Function(BuildContext context, AxisReelModel reel);
 
 class AxisReelsExploreScreen extends ConsumerStatefulWidget {
   /// List of reels to display. If null, uses default data
@@ -33,6 +33,22 @@ class AxisReelsExploreScreen extends ConsumerStatefulWidget {
   /// Custom background builder for each item
   /// Useful for custom gradients, overlays, etc.
   final ItemBackgroundBuilder? backgroundBuilder;
+
+  /// Custom video thumbnail builder
+  /// Used to display thumbnail while video is loading or on error
+  final VideoThumbnailBuilder? videoThumbnailBuilder;
+
+  /// Custom image item builder
+  /// Used to display image items
+  final ImageItemBuilder? imageItemBuilder;
+
+  /// Custom cache manager for image items
+  /// Uses default cache manager if not provided
+  final BaseCacheManager? imageCacheManager;
+
+  /// Custom cache manager for video thumbnails
+  /// Uses default cache manager if not provided
+  final BaseCacheManager? videoThumbnailCacheManager;
 
   /// Whether to show the default app bar with back button
   /// Set to false for embedding in custom scroll views
@@ -86,6 +102,10 @@ class AxisReelsExploreScreen extends ConsumerStatefulWidget {
     this.title,
     this.foregroundBuilder,
     this.backgroundBuilder,
+    this.videoThumbnailBuilder,
+    this.imageItemBuilder,
+    this.imageCacheManager,
+    this.videoThumbnailCacheManager,
     this.showAppBar = false,
     this.manageScroll = true,
     this.scrollController,
@@ -101,16 +121,13 @@ class AxisReelsExploreScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<AxisReelsExploreScreen> createState() =>
-      _AxisReelsExploreScreenState();
+  ConsumerState<AxisReelsExploreScreen> createState() => _AxisReelsExploreScreenState();
 }
 
-class _AxisReelsExploreScreenState
-    extends ConsumerState<AxisReelsExploreScreen> {
+class _AxisReelsExploreScreenState extends ConsumerState<AxisReelsExploreScreen> {
   ScrollController? _internalScrollController;
 
-  ScrollController get _effectiveScrollController =>
-      widget.scrollController ?? _internalScrollController!;
+  ScrollController get _effectiveScrollController => widget.scrollController ?? _internalScrollController!;
 
   @override
   void initState() {
@@ -131,10 +148,9 @@ class _AxisReelsExploreScreenState
   @override
   Widget build(BuildContext context) {
     // Watch the provider with the reels and maxConcurrentVideos arguments
-    final axisReelsState = ref.watch(axisReelsProvider(AxisReelsProviderParams(
-      reels: widget.reels,
-      maxConcurrentVideos: widget.maxConcurrentVideos,
-    )));
+    final axisReelsState = ref.watch(
+      axisReelsProvider(AxisReelsProviderParams(reels: widget.reels, maxConcurrentVideos: widget.maxConcurrentVideos)),
+    );
 
     // Get rows directly from state (no need to generate locally)
     final rows = axisReelsState.rows;
@@ -153,11 +169,7 @@ class _AxisReelsExploreScreenState
                 itemCount: rows.length,
                 itemBuilder: (context, index) => _buildRow(context, rows[index], axisReelsState),
               )
-            : Column(
-                children: rows
-                    .map((row) => _buildRow(context, row, axisReelsState))
-                    .toList(),
-              ),
+            : Column(children: rows.map((row) => _buildRow(context, row, axisReelsState)).toList()),
       ),
     );
 
@@ -171,13 +183,8 @@ class _AxisReelsExploreScreenState
       backgroundColor: widget.backgroundColor,
       appBar: widget.title != null
           ? AppBar(
-              backgroundColor: widget.backgroundColor == Colors.transparent
-                  ? Colors.black
-                  : widget.backgroundColor,
-              title: Text(
-                widget.title!,
-                style: const TextStyle(color: Colors.white),
-              ),
+              backgroundColor: widget.backgroundColor == Colors.transparent ? Colors.black : widget.backgroundColor,
+              title: Text(widget.title!, style: const TextStyle(color: Colors.white)),
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back, color: Colors.white),
                 onPressed: () => Navigator.of(context).pop(),
@@ -195,42 +202,29 @@ class _AxisReelsExploreScreenState
       margin: EdgeInsets.only(bottom: widget.itemSpacing),
       child: Row(
         children: [
-          Expanded(
-            child: _buildReelItem(row[0], axisReelsState, itemHeight),
-          ),
+          Expanded(child: _buildReelItem(row[0], axisReelsState, itemHeight)),
           SizedBox(width: widget.itemSpacing),
-          Expanded(
-            child: row.length > 1
-                ? _buildReelItem(row[1], axisReelsState, itemHeight)
-                : Container(),
-          ),
+          Expanded(child: row.length > 1 ? _buildReelItem(row[1], axisReelsState, itemHeight) : Container()),
         ],
       ),
     );
   }
 
-  Widget _buildReelItem(
-      AxisReelModel reel, axisReelsState, double itemHeight) {
+  Widget _buildReelItem(AxisReelModel reel, axisReelsState, double itemHeight) {
     return VisibilityDetector(
       key: Key(reel.id),
       onVisibilityChanged: (info) {
         if (reel.type == ReelType.video) {
-          final isVisible =
-              info.visibleFraction > 0.9; // 90% visibility threshold
+          final isVisible = info.visibleFraction > 0.9; // 90% visibility threshold
           axisReelsState.onVideoVisibilityChanged(reel.id, isVisible);
         }
       },
       child: Container(
         height: itemHeight,
-        decoration: BoxDecoration(
-          color: Colors.grey[900],
-          borderRadius: BorderRadius.circular(12),
-        ),
+        decoration: BoxDecoration(color: Colors.grey[900], borderRadius: BorderRadius.circular(12)),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(12),
-          child: reel.type == ReelType.image
-              ? _buildImageItem(reel)
-              : _buildVideoItem(reel, axisReelsState),
+          child: reel.type == ReelType.image ? _buildImageItem(reel) : _buildVideoItem(reel, axisReelsState),
         ),
       ),
     );
@@ -240,35 +234,29 @@ class _AxisReelsExploreScreenState
     return Stack(
       fit: StackFit.expand,
       children: [
-        CachedNetworkImage(
-          imageUrl: reel.url,
-          fit: BoxFit.cover,
-          // Use old cache while checking for new one
-          cacheKey: reel.url,
-          maxHeightDiskCache: 1000,
-          maxWidthDiskCache: 1000,
-          memCacheHeight: 1000,
-          memCacheWidth: 1000,
-          placeholder: (context, url) => Container(
-            color: Colors.grey[800],
-            child: const Center(
-              child: CircularProgressIndicator(
-                color: Colors.white54,
-                strokeWidth: 2,
-              ),
+        // Custom image builder or default CachedNetworkImage
+        if (widget.imageItemBuilder != null)
+          widget.imageItemBuilder!(context, reel)
+        else
+          CachedNetworkImage(
+            imageUrl: reel.url,
+            fit: BoxFit.cover,
+            useOldImageOnUrlChange: true,
+            cacheKey: reel.url,
+            cacheManager: widget.imageCacheManager,
+            maxHeightDiskCache: 1000,
+            maxWidthDiskCache: 1000,
+            memCacheHeight: 1000,
+            memCacheWidth: 1000,
+            placeholder: (context, url) => Container(
+              color: Colors.grey[800],
+              child: const Center(child: CircularProgressIndicator(color: Colors.white54, strokeWidth: 2)),
+            ),
+            errorWidget: (context, url, error) => Container(
+              color: Colors.grey[800],
+              child: const Center(child: Icon(Icons.error_outline, color: Colors.white54, size: 40)),
             ),
           ),
-          errorWidget: (context, url, error) => Container(
-            color: Colors.grey[800],
-            child: const Center(
-              child: Icon(
-                Icons.error_outline,
-                color: Colors.white54,
-                size: 40,
-              ),
-            ),
-          ),
-        ),
         // Custom background or default gradient
         if (widget.backgroundBuilder != null)
           widget.backgroundBuilder!(context, reel)
@@ -278,33 +266,13 @@ class _AxisReelsExploreScreenState
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withValues(alpha: 0.6),
-                ],
+                colors: [Colors.transparent, Colors.black.withValues(alpha: 0.6)],
                 stops: const [0.6, 1.0],
               ),
             ),
           ),
-        // Custom foreground or default title
-        if (widget.foregroundBuilder != null)
-          widget.foregroundBuilder!(context, reel, false)
-        else if (reel.title != null)
-          Positioned(
-            bottom: 8,
-            left: 8,
-            right: 8,
-            child: Text(
-              reel.title!,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
+        // Custom foreground only (no default)
+        if (widget.foregroundBuilder != null) widget.foregroundBuilder!(context, reel, false),
         // Media type icon at bottom-left
         if (widget.showMediaTypeIcon)
           Positioned(
@@ -316,11 +284,7 @@ class _AxisReelsExploreScreenState
                 color: Colors.black.withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: const Icon(
-                Icons.image,
-                color: Colors.white,
-                size: 14,
-              ),
+              child: const Icon(Icons.image, color: Colors.white, size: 14),
             ),
           ),
       ],
@@ -338,36 +302,29 @@ class _AxisReelsExploreScreenState
       children: [
         // Video player or thumbnail
         if (!isInitialized || hasError)
-          // Show thumbnail while loading or on error
-          CachedNetworkImage(
-            imageUrl: reel.thumbnailUrl ?? '',
-            fit: BoxFit.cover,
-            // Use old cache while checking for new one
-            cacheKey: reel.thumbnailUrl,
-            maxHeightDiskCache: 1000,
-            maxWidthDiskCache: 1000,
-            memCacheHeight: 1000,
-            memCacheWidth: 1000,
-            placeholder: (context, url) => Container(
-              color: Colors.grey[800],
-              child: const Center(
-                child: CircularProgressIndicator(
-                  color: Colors.white54,
-                  strokeWidth: 2,
-                ),
+          // Show custom thumbnail builder or default CachedNetworkImage
+          if (widget.videoThumbnailBuilder != null)
+            widget.videoThumbnailBuilder!(context, reel)
+          else
+            CachedNetworkImage(
+              imageUrl: reel.thumbnailUrl ?? '',
+              fit: BoxFit.cover,
+              useOldImageOnUrlChange: true,
+              cacheKey: reel.thumbnailUrl,
+              cacheManager: widget.videoThumbnailCacheManager,
+              maxHeightDiskCache: 1000,
+              maxWidthDiskCache: 1000,
+              memCacheHeight: 1000,
+              memCacheWidth: 1000,
+              placeholder: (context, url) => Container(
+                color: Colors.grey[800],
+                child: const Center(child: CircularProgressIndicator(color: Colors.white54, strokeWidth: 2)),
               ),
-            ),
-            errorWidget: (context, url, error) => Container(
-              color: Colors.grey[800],
-              child: const Center(
-                child: Icon(
-                  Icons.videocam_off,
-                  color: Colors.white54,
-                  size: 40,
-                ),
+              errorWidget: (context, url, error) => Container(
+                color: Colors.grey[800],
+                child: const Center(child: Icon(Icons.videocam_off, color: Colors.white54, size: 40)),
               ),
-            ),
-          )
+            )
         else if (controller != null)
           GestureDetector(
             onTap: () {
@@ -394,10 +351,7 @@ class _AxisReelsExploreScreenState
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withValues(alpha: 0.6),
-                ],
+                colors: [Colors.transparent, Colors.black.withValues(alpha: 0.6)],
                 stops: const [0.6, 1.0],
               ),
             ),
@@ -417,15 +371,8 @@ class _AxisReelsExploreScreenState
                   duration: const Duration(milliseconds: 300),
                   child: Container(
                     padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.6),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.play_arrow,
-                      color: Colors.white,
-                      size: 24,
-                    ),
+                    decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.6), shape: BoxShape.circle),
+                    child: const Icon(Icons.play_arrow, color: Colors.white, size: 24),
                   ),
                 ),
               ),
@@ -443,68 +390,18 @@ class _AxisReelsExploreScreenState
                 color: Colors.black54,
                 borderRadius: BorderRadius.all(Radius.circular(4)),
               ),
-              child: const Icon(
-                Icons.play_circle_outline,
-                color: Colors.white,
-                size: 16,
-              ),
+              child: const Icon(Icons.play_circle_outline, color: Colors.white, size: 16),
             ),
           ),
 
-        // Custom foreground or default title with controls
-        if (widget.foregroundBuilder != null)
-          widget.foregroundBuilder!(context, reel, isPlaying)
-        else
-          Positioned(
-            bottom: 8,
-            left: 8,
-            right: 8,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    reel.title ?? '',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (isInitialized && !hasError)
-                  GestureDetector(
-                    onTap: () {
-                      axisReelsState.resetVideo(reel.id);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Icon(
-                        Icons.replay,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
+        // Custom foreground only (no default)
+        if (widget.foregroundBuilder != null) widget.foregroundBuilder!(context, reel, isPlaying),
 
         // Loading indicator for video initialization
         if (!isInitialized && !hasError && reel.type == ReelType.video)
           Container(
             color: Colors.black38,
-            child: const Center(
-              child: CircularProgressIndicator(
-                color: Colors.white54,
-                strokeWidth: 2,
-              ),
-            ),
+            child: const Center(child: CircularProgressIndicator(color: Colors.white54, strokeWidth: 2)),
           ),
 
         // Media type icon at bottom-left
@@ -518,11 +415,7 @@ class _AxisReelsExploreScreenState
                 color: Colors.black.withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: const Icon(
-                Icons.videocam,
-                color: Colors.white,
-                size: 14,
-              ),
+              child: const Icon(Icons.videocam, color: Colors.white, size: 14),
             ),
           ),
       ],
