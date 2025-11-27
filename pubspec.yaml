@@ -1,6 +1,6 @@
 name: flutter_awsome_video_grid
 description: "A powerful Flutter package for displaying Instagram/TikTok-style reels in a grid layout with intelligent video playback management, custom UI builders, and performance optimization."
-version: 2.0.0
+version: 2.0.1
 homepage: https://github.com/yourusername/flutter_awsome_video_grid
 repository: https://github.com/yourusername/flutter_awsome_video_grid
 issue_tracker: https://github.com/yourusername/flutter_awsome_video_grid/issues

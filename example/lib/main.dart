@@ -5,6 +5,7 @@ import 'package:flutter_awsome_video_grid/flutter_awsome_video_grid.dart';
 import 'custom_foreground_example.dart';
 import 'nested_scroll_example.dart';
 import 'concurrent_videos_example.dart';
+import 'draggable_sheet_example.dart';
 
 void main() {
   runApp(const ProviderScope(child: MyApp()));
@@ -38,7 +39,7 @@ class ExampleHomeScreen extends StatelessWidget {
         backgroundColor: Colors.black,
         elevation: 0,
         title: const Text(
-          'Flutter Awsome Video Grid',
+          'Flutter Awesome Video Grid',
           style: TextStyle(
             color: Colors.white,
             fontSize: 22,
@@ -189,6 +190,36 @@ class ExampleHomeScreen extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const DraggableSheetExample(),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.indigo,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: const Icon(Icons.drag_handle),
+              label: const Text(
+                'Draggable Sheet',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
             const SizedBox(height: 48),
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 32),
@@ -215,6 +246,8 @@ class ExampleHomeScreen extends StatelessWidget {
                     '• Custom foreground/background\n'
                     '• Flexible scroll management\n'
                     '• Auto media type detection\n'
+                    '• Media type icons (image/video)\n'
+                    '• DraggableScrollableSheet support\n'
                     '• Configurable UI options',
                     style: TextStyle(
                       color: Colors.white70,
