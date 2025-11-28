@@ -302,12 +302,13 @@ class _AxisReelsExploreScreenState extends ConsumerState<AxisReelsExploreScreen>
       children: [
         // Video player or thumbnail
         if (!isInitialized || hasError)
-          // Show custom thumbnail builder or default CachedNetworkImage
+          // Show custom thumbnail builder or default behavior
           if (widget.videoThumbnailBuilder != null)
             widget.videoThumbnailBuilder!(context, reel)
-          else
+          // Only show thumbnail if thumbnailUrl is not null or empty
+          else if (reel.thumbnailUrl != null && reel.thumbnailUrl!.isNotEmpty)
             CachedNetworkImage(
-              imageUrl: reel.thumbnailUrl ?? '',
+              imageUrl: reel.thumbnailUrl!,
               fit: BoxFit.cover,
               useOldImageOnUrlChange: true,
               cacheKey: reel.thumbnailUrl,
@@ -316,15 +317,12 @@ class _AxisReelsExploreScreenState extends ConsumerState<AxisReelsExploreScreen>
               maxWidthDiskCache: 1000,
               memCacheHeight: 1000,
               memCacheWidth: 1000,
-              placeholder: (context, url) => Container(
-                color: Colors.grey[800],
-                child: const Center(child: CircularProgressIndicator(color: Colors.white54, strokeWidth: 2)),
-              ),
-              errorWidget: (context, url, error) => Container(
-                color: Colors.grey[800],
-                child: const Center(child: Icon(Icons.videocam_off, color: Colors.white54, size: 40)),
-              ),
+              placeholder: (context, url) => const SizedBox.shrink(),
+              errorWidget: (context, url, error) => const SizedBox.shrink(),
             )
+          else
+            // No thumbnail URL provided, show nothing (loading indicator will be shown below)
+            const SizedBox.shrink()
         else if (controller != null)
           GestureDetector(
             onTap: () {
