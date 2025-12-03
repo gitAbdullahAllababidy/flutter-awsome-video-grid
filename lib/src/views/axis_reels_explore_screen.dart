@@ -118,7 +118,12 @@ class AxisReelsExploreScreen extends ConsumerStatefulWidget {
     this.itemSpacing = 8.0,
     this.backgroundColor = Colors.transparent,
     this.maxConcurrentVideos = 2,
+    this.onItemTap,
   });
+
+  /// Callback when an item is tapped
+  /// Returns the reel model
+  final void Function(AxisReelModel reel)? onItemTap;
 
   @override
   ConsumerState<AxisReelsExploreScreen> createState() => _AxisReelsExploreScreenState();
@@ -231,7 +236,7 @@ class _AxisReelsExploreScreenState extends ConsumerState<AxisReelsExploreScreen>
   }
 
   Widget _buildImageItem(AxisReelModel reel) {
-    return Stack(
+    final stack = Stack(
       fit: StackFit.expand,
       children: [
         // Custom image builder or default CachedNetworkImage
@@ -289,6 +294,15 @@ class _AxisReelsExploreScreenState extends ConsumerState<AxisReelsExploreScreen>
           ),
       ],
     );
+
+    if (widget.onItemTap != null) {
+      return GestureDetector(
+        onTap: () => widget.onItemTap!(reel),
+        child: stack,
+      );
+    }
+
+    return stack;
   }
 
   Widget _buildVideoItem(AxisReelModel reel, axisReelsState) {
@@ -326,7 +340,11 @@ class _AxisReelsExploreScreenState extends ConsumerState<AxisReelsExploreScreen>
         else if (controller != null)
           GestureDetector(
             onTap: () {
-              axisReelsState.toggleVideoPlayPause(reel.id);
+              if (widget.onItemTap != null) {
+                widget.onItemTap!(reel);
+              } else {
+                axisReelsState.toggleVideoPlayPause(reel.id);
+              }
             },
             child: SizedBox.expand(
               child: FittedBox(
