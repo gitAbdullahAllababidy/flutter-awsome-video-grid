@@ -85,6 +85,10 @@ class AxisReelsExploreScreen extends ConsumerStatefulWidget {
   /// Default: true
   final bool showMediaTypeIcon;
 
+  /// Whether to enable internal play/pause on tap when onItemTap is not provided
+  /// Default: false
+  final bool enableInternalPlayPause;
+
   /// Custom scroll physics for the grid
   /// Useful for coordinating with DraggableScrollableSheet
   /// Example: Use NeverScrollableScrollPhysics() when embedding in DraggableScrollableSheet
@@ -112,6 +116,7 @@ class AxisReelsExploreScreen extends ConsumerStatefulWidget {
     this.showVideoIndicator = false,
     this.showPlayButton = true,
     this.showMediaTypeIcon = true,
+    this.enableInternalPlayPause = false,
     this.physics,
     this.shrinkWrap = false,
     this.padding,
@@ -296,10 +301,7 @@ class _AxisReelsExploreScreenState extends ConsumerState<AxisReelsExploreScreen>
     );
 
     if (widget.onItemTap != null) {
-      return GestureDetector(
-        onTap: () => widget.onItemTap!(reel),
-        child: stack,
-      );
+      return GestureDetector(onTap: () => widget.onItemTap!(reel), child: stack);
     }
 
     return stack;
@@ -311,7 +313,7 @@ class _AxisReelsExploreScreenState extends ConsumerState<AxisReelsExploreScreen>
     final controller = axisReelsState.getVideoController(reel.id);
     final isPlaying = controller?.value.isPlaying ?? false;
 
-    return Stack(
+    final stack = Stack(
       fit: StackFit.expand,
       children: [
         // Video player or thumbnail
@@ -339,10 +341,11 @@ class _AxisReelsExploreScreenState extends ConsumerState<AxisReelsExploreScreen>
             const SizedBox.shrink()
         else if (controller != null)
           GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: () {
               if (widget.onItemTap != null) {
                 widget.onItemTap!(reel);
-              } else {
+              } else if (widget.enableInternalPlayPause) {
                 axisReelsState.toggleVideoPlayPause(reel.id);
               }
             },
@@ -436,5 +439,9 @@ class _AxisReelsExploreScreenState extends ConsumerState<AxisReelsExploreScreen>
           ),
       ],
     );
+    if (widget.onItemTap != null) {
+      return GestureDetector(onTap: () => widget.onItemTap!(reel), child: stack);
+    }
+    return stack;
   }
 }
