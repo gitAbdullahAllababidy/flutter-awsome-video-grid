@@ -340,16 +340,7 @@ class _AxisReelsExploreScreenState extends ConsumerState<AxisReelsExploreScreen>
             // No thumbnail URL provided, show nothing (loading indicator will be shown below)
             const SizedBox.shrink()
         else if (controller != null)
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-              if (widget.onItemTap != null) {
-                widget.onItemTap!(reel);
-              } else if (widget.enableInternalPlayPause) {
-                axisReelsState.toggleVideoPlayPause(reel.id);
-              }
-            },
-            child: SizedBox.expand(
+            SizedBox.expand(
               child: FittedBox(
                 fit: BoxFit.cover,
                 child: SizedBox(
@@ -359,7 +350,6 @@ class _AxisReelsExploreScreenState extends ConsumerState<AxisReelsExploreScreen>
                 ),
               ),
             ),
-          ),
 
         // Custom background or default gradient
         if (widget.backgroundBuilder != null)
@@ -376,27 +366,7 @@ class _AxisReelsExploreScreenState extends ConsumerState<AxisReelsExploreScreen>
             ),
           ),
 
-        // Play button overlay (only show when paused and showPlayButton is true)
-        if (widget.showPlayButton && isInitialized && !hasError && controller != null)
-          GestureDetector(
-            onTap: () {
-              axisReelsState.toggleVideoPlayPause(reel.id);
-            },
-            child: Container(
-              color: Colors.transparent,
-              child: Center(
-                child: AnimatedOpacity(
-                  opacity: isPlaying ? 0.0 : 1.0,
-                  duration: const Duration(milliseconds: 300),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.6), shape: BoxShape.circle),
-                    child: const Icon(Icons.play_arrow, color: Colors.white, size: 24),
-                  ),
-                ),
-              ),
-            ),
-          ),
+
 
         // Video indicator (optional, default is false)
         if (widget.showVideoIndicator)
