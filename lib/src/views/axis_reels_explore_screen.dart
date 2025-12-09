@@ -376,8 +376,8 @@ class _AxisReelsExploreScreenState extends ConsumerState<AxisReelsExploreScreen>
             ),
           ),
 
-        // Play button overlay (only show when paused and showPlayButton is true)
-        if (widget.showPlayButton && isInitialized && !hasError && controller != null)
+        // Play button overlay (only show when paused, showPlayButton is true, AND no onItemTap callback)
+        if (widget.showPlayButton && isInitialized && !hasError && controller != null && widget.onItemTap == null && widget.enableInternalPlayPause)
           GestureDetector(
             onTap: () {
               axisReelsState.toggleVideoPlayPause(reel.id);
@@ -397,6 +397,7 @@ class _AxisReelsExploreScreenState extends ConsumerState<AxisReelsExploreScreen>
               ),
             ),
           ),
+
 
         // Video indicator (optional, default is false)
         if (widget.showVideoIndicator)
