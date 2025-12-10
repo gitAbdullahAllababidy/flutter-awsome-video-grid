@@ -365,9 +365,6 @@ class _AxisReelsExploreScreenState extends ConsumerState<AxisReelsExploreScreen>
               ),
             ),
           ),
-
-
-
         // Video indicator (optional, default is false)
         if (widget.showVideoIndicator)
           Positioned(
