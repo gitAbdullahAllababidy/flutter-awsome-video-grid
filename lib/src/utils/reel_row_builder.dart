@@ -7,11 +7,7 @@ import 'package:visibility_detector/visibility_detector.dart';
 import '../models/axis_reel_model.dart';
 import '../state/axis_reels_state.dart';
 import '../views/axis_reels_explore_screen.dart'
-    show
-        ItemForegroundBuilder,
-        ItemBackgroundBuilder,
-        VideoThumbnailBuilder,
-        ImageItemBuilder;
+    show ItemForegroundBuilder, ItemBackgroundBuilder, VideoThumbnailBuilder, ImageItemBuilder;
 
 /// Utility class for building reel rows and items
 /// Extracted from AxisReelsExploreScreen for reuse in sliver implementations
@@ -27,8 +23,11 @@ class ReelRowBuilder {
   final bool showMediaTypeIcon;
   final void Function(AxisReelModel reel)? onItemTap;
 
+  final int crossAxisCount;
+
   const ReelRowBuilder({
     required this.itemSpacing,
+    this.crossAxisCount = 2,
     this.foregroundBuilder,
     this.backgroundBuilder,
     this.videoThumbnailBuilder,
@@ -40,37 +39,36 @@ class ReelRowBuilder {
     this.onItemTap,
   });
 
-  /// Build a row containing 1-2 reel items
-  Widget buildRow(
-    BuildContext context,
-    List<AxisReelModel> row,
-    AxisReelsState axisReelsState,
-  ) {
-    final itemHeight = MediaQuery.of(context).size.width * 0.6;
+  /// Build a row containing items based on crossAxisCount
+  Widget buildRow(BuildContext context, List<AxisReelModel> row, AxisReelsState axisReelsState) {
+    // Calculate item height based on screen width and column count to maintain aspect ratio
+    // Original (2 cols) was ~0.6 screen width height.
+    // 2 items: Width ~0.5sw. Height 0.6sw. Ratio ~0.83
+    // Maintain Ratio 0.83 => Height = Width / 0.83
+    final screenWidth = MediaQuery.of(context).size.width;
+    final itemWidth = (screenWidth - (itemSpacing * (crossAxisCount - 1))) / crossAxisCount;
+    final itemHeight = itemWidth / 0.83;
+
+    final List<Widget> children = [];
+    for (int i = 0; i < crossAxisCount; i++) {
+      if (i < row.length) {
+        children.add(Expanded(child: buildReelItem(context, row[i], axisReelsState, itemHeight)));
+      } else {
+        children.add(Expanded(child: Container())); // Spacer
+      }
+      if (i < crossAxisCount - 1) {
+        children.add(SizedBox(width: itemSpacing));
+      }
+    }
 
     return Container(
       margin: EdgeInsets.only(bottom: itemSpacing),
-      child: Row(
-        children: [
-          Expanded(child: buildReelItem(context, row[0], axisReelsState, itemHeight)),
-          SizedBox(width: itemSpacing),
-          Expanded(
-            child: row.length > 1
-                ? buildReelItem(context, row[1], axisReelsState, itemHeight)
-                : Container(),
-          ),
-        ],
-      ),
+      child: Row(children: children),
     );
   }
 
   /// Build a single reel item (image or video)
-  Widget buildReelItem(
-    BuildContext context,
-    AxisReelModel reel,
-    AxisReelsState axisReelsState,
-    double itemHeight,
-  ) {
+  Widget buildReelItem(BuildContext context, AxisReelModel reel, AxisReelsState axisReelsState, double itemHeight) {
     return VisibilityDetector(
       key: Key(reel.id),
       onVisibilityChanged: (info) {
@@ -81,10 +79,7 @@ class ReelRowBuilder {
       },
       child: Container(
         height: itemHeight,
-        decoration: BoxDecoration(
-          color: Colors.grey[900],
-          borderRadius: BorderRadius.circular(12),
-        ),
+        decoration: BoxDecoration(color: Colors.grey[900], borderRadius: BorderRadius.circular(12)),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(12),
           child: reel.type == ReelType.image
@@ -115,18 +110,11 @@ class ReelRowBuilder {
             memCacheWidth: 1000,
             placeholder: (context, url) => Container(
               color: Colors.grey[800],
-              child: const Center(
-                child: CircularProgressIndicator(
-                  color: Colors.white54,
-                  strokeWidth: 2,
-                ),
-              ),
+              child: const Center(child: CircularProgressIndicator(color: Colors.white54, strokeWidth: 2)),
             ),
             errorWidget: (context, url, error) => Container(
               color: Colors.grey[800],
-              child: const Center(
-                child: Icon(Icons.error_outline, color: Colors.white54, size: 40),
-              ),
+              child: const Center(child: Icon(Icons.error_outline, color: Colors.white54, size: 40)),
             ),
           ),
         // Custom background or default gradient
@@ -169,11 +157,7 @@ class ReelRowBuilder {
     return stack;
   }
 
-  Widget _buildVideoItem(
-    BuildContext context,
-    AxisReelModel reel,
-    AxisReelsState axisReelsState,
-  ) {
+  Widget _buildVideoItem(BuildContext context, AxisReelModel reel, AxisReelsState axisReelsState) {
     final isInitialized = axisReelsState.isVideoInitialized(reel.id);
     final hasError = axisReelsState.hasVideoError(reel.id);
     final controller = axisReelsState.getVideoController(reel.id);
@@ -253,9 +237,7 @@ class ReelRowBuilder {
         if (!isInitialized && !hasError && reel.type == ReelType.video)
           Container(
             color: Colors.black38,
-            child: const Center(
-              child: CircularProgressIndicator(color: Colors.white54, strokeWidth: 2),
-            ),
+            child: const Center(child: CircularProgressIndicator(color: Colors.white54, strokeWidth: 2)),
           ),
 
         // Media type icon at bottom-left
@@ -280,4 +262,3 @@ class ReelRowBuilder {
     return stack;
   }
 }
-

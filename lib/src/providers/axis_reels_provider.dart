@@ -7,11 +7,9 @@ import '../state/axis_reels_state.dart';
 class AxisReelsProviderParams {
   final List<AxisReelModel>? reels;
   final int? maxConcurrentVideos;
+  final int? crossAxisCount;
 
-  const AxisReelsProviderParams({
-    this.reels,
-    this.maxConcurrentVideos,
-  });
+  const AxisReelsProviderParams({this.reels, this.maxConcurrentVideos, this.crossAxisCount});
 
   @override
   bool operator ==(Object other) =>
@@ -19,10 +17,11 @@ class AxisReelsProviderParams {
       other is AxisReelsProviderParams &&
           runtimeType == other.runtimeType &&
           reels == other.reels &&
-          maxConcurrentVideos == other.maxConcurrentVideos;
+          maxConcurrentVideos == other.maxConcurrentVideos &&
+          crossAxisCount == other.crossAxisCount;
 
   @override
-  int get hashCode => reels.hashCode ^ maxConcurrentVideos.hashCode;
+  int get hashCode => reels.hashCode ^ maxConcurrentVideos.hashCode ^ crossAxisCount.hashCode;
 }
 
 /// Provider for Axis Reels state with optional custom data
@@ -38,14 +37,15 @@ class AxisReelsProviderParams {
 /// // With max concurrent videos
 /// ref.watch(axisReelsProvider(AxisReelsProviderParams(maxConcurrentVideos: 3)))
 /// ```
-final axisReelsProvider = ChangeNotifierProvider.autoDispose
-    .family<AxisReelsState, AxisReelsProviderParams>(
-  (ref, params) {
-    final state = AxisReelsState(
-      customReels: params.reels,
-      maxConcurrentVideos: params.maxConcurrentVideos,
-    );
-    state.initialize();
-    return state;
-  },
-);
+final axisReelsProvider = ChangeNotifierProvider.autoDispose.family<AxisReelsState, AxisReelsProviderParams>((
+  ref,
+  params,
+) {
+  final state = AxisReelsState(
+    customReels: params.reels,
+    maxConcurrentVideos: params.maxConcurrentVideos,
+    crossAxisCount: params.crossAxisCount,
+  );
+  state.initialize();
+  return state;
+});

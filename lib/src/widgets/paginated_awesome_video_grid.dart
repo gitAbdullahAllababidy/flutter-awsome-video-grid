@@ -22,6 +22,7 @@ class PaginatedAwesomeVideoGrid extends ConsumerStatefulWidget {
     this.padding,
     this.itemSpacing = 8.0,
     this.maxConcurrentVideos = 2,
+    this.crossAxisCount = 2,
     this.showVideoIndicator = true,
     this.showMediaTypeIcon = true,
     this.onItemTap,
@@ -73,6 +74,9 @@ class PaginatedAwesomeVideoGrid extends ConsumerStatefulWidget {
 
   /// Maximum number of videos that can play simultaneously.
   final int? maxConcurrentVideos;
+
+  /// Number of items across the cross axis.
+  final int crossAxisCount;
 
   /// whether to show video indicator.
   final bool showVideoIndicator;
@@ -166,7 +170,13 @@ class _PaginatedAwesomeVideoGridState extends ConsumerState<PaginatedAwesomeVide
     // 2. Data State with Slivers
     // Watch the provider with the reels and maxConcurrentVideos arguments
     final axisReelsState = ref.watch(
-      axisReelsProvider(AxisReelsProviderParams(reels: widget.items, maxConcurrentVideos: widget.maxConcurrentVideos)),
+      axisReelsProvider(
+        AxisReelsProviderParams(
+          reels: widget.items,
+          maxConcurrentVideos: widget.maxConcurrentVideos,
+          crossAxisCount: widget.crossAxisCount,
+        ),
+      ),
     );
 
     // Get rows directly from state
@@ -175,6 +185,7 @@ class _PaginatedAwesomeVideoGridState extends ConsumerState<PaginatedAwesomeVide
     // Initialize the helper builder
     final rowBuilder = ReelRowBuilder(
       itemSpacing: widget.itemSpacing,
+      crossAxisCount: widget.crossAxisCount,
       foregroundBuilder: widget.foregroundBuilder,
       backgroundBuilder: widget.backgroundBuilder,
       videoThumbnailBuilder: widget.videoThumbnailBuilder,

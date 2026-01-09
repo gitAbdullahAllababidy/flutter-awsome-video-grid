@@ -3,21 +3,21 @@ import 'dart:async';
 import 'package:cached_video_player_plus/cached_video_player_plus.dart';
 import 'package:flutter/foundation.dart';
 
-import '../models/axis_reel_model.dart';
 import '../data/default_reels_data.dart';
+import '../models/axis_reel_model.dart';
 
 class AxisReelsState extends ChangeNotifier {
   /// Constructor with optional custom reel data
   /// If no custom data is provided, uses the default sample data
   /// Accepts a flat list of models and handles row generation internally
-  AxisReelsState({
-    List<AxisReelModel>? customReels,
-    int? maxConcurrentVideos,
-  })  : _reels = customReels ?? DefaultReelsData.flatList,
-        _maxConcurrentVideos = maxConcurrentVideos;
+  AxisReelsState({List<AxisReelModel>? customReels, int? maxConcurrentVideos, int? crossAxisCount})
+    : _reels = customReels ?? DefaultReelsData.flatList,
+      _maxConcurrentVideos = maxConcurrentVideos,
+      _crossAxisCount = crossAxisCount ?? 2;
 
   final List<AxisReelModel> _reels;
   final int? _maxConcurrentVideos;
+  final int _crossAxisCount;
   List<List<AxisReelModel>>? _cachedRows;
 
   final Map<String, CachedVideoPlayerPlusController> _videoControllers = {};
@@ -42,16 +42,14 @@ class AxisReelsState extends ChangeNotifier {
     return _cachedRows!;
   }
 
-  /// Generate rows from flat list of reels (2 items per row)
+  /// Generate rows from flat list of reels (items per row depends on crossAxisCount)
   List<List<AxisReelModel>> _generateRows(List<AxisReelModel> items) {
     final List<List<AxisReelModel>> generatedRows = [];
-    for (int i = 0; i < items.length; i += 2) {
-      if (i + 1 < items.length) {
-        generatedRows.add([items[i], items[i + 1]]);
-      } else {
-        // If odd number of items, last row has single item
-        generatedRows.add([items[i]]);
-      }
+    if (items.isEmpty) return generatedRows;
+
+    for (int i = 0; i < items.length; i += _crossAxisCount) {
+      int end = (i + _crossAxisCount < items.length) ? i + _crossAxisCount : items.length;
+      generatedRows.add(items.sublist(i, end));
     }
     return generatedRows;
   }
@@ -60,8 +58,7 @@ class AxisReelsState extends ChangeNotifier {
     return _videoControllers[videoId];
   }
 
-  bool isVideoInitialized(String videoId) =>
-      _isVideoInitialized[videoId] ?? false;
+  bool isVideoInitialized(String videoId) => _isVideoInitialized[videoId] ?? false;
   bool hasVideoError(String videoId) => _hasVideoError[videoId] ?? false;
   bool isVideoVisible(String videoId) => _visibleVideoIds.contains(videoId);
 
@@ -69,8 +66,7 @@ class AxisReelsState extends ChangeNotifier {
     if (_isDisposed) return;
 
     // Preload first few videos
-    final videoReels =
-        allReels.where((reel) => reel.type == ReelType.video).take(3);
+    final videoReels = allReels.where((reel) => reel.type == ReelType.video).take(3);
     for (final reel in videoReels) {
       _initializeVideoController(reel);
     }
@@ -125,33 +121,36 @@ class AxisReelsState extends ChangeNotifier {
       _hasVideoError[videoReel.id] = false;
       _videoLoopCounts[videoReel.id] = 0;
 
-      controller.initialize().then((_) {
-        if (_isDisposed) return;
+      controller
+          .initialize()
+          .then((_) {
+            if (_isDisposed) return;
 
-        _isVideoInitialized[videoReel.id] = true;
-        _hasVideoError[videoReel.id] = false;
+            _isVideoInitialized[videoReel.id] = true;
+            _hasVideoError[videoReel.id] = false;
 
-        // Set video to mute by default
-        controller.setVolume(0.0);
+            // Set video to mute by default
+            controller.setVolume(0.0);
 
-        // Set up listener for finite looping
-        controller.addListener(() => _handleVideoLoop(videoReel.id));
+            // Set up listener for finite looping
+            controller.addListener(() => _handleVideoLoop(videoReel.id));
 
-        // Auto-play if video is visible
-        if (_visibleVideoIds.contains(videoReel.id)) {
-          _playVideo(videoReel.id);
-        }
+            // Auto-play if video is visible
+            if (_visibleVideoIds.contains(videoReel.id)) {
+              _playVideo(videoReel.id);
+            }
 
-        notifyListeners();
-      }).catchError((error) {
-        if (_isDisposed) return;
+            notifyListeners();
+          })
+          .catchError((error) {
+            if (_isDisposed) return;
 
-        _hasVideoError[videoReel.id] = true;
-        _isVideoInitialized[videoReel.id] = false;
-        _videoControllers.remove(videoReel.id);
-        debugPrint('Error initializing video ${videoReel.id}: $error');
-        notifyListeners();
-      });
+            _hasVideoError[videoReel.id] = true;
+            _isVideoInitialized[videoReel.id] = false;
+            _videoControllers.remove(videoReel.id);
+            debugPrint('Error initializing video ${videoReel.id}: $error');
+            notifyListeners();
+          });
     } catch (e) {
       _hasVideoError[videoReel.id] = true;
       _isVideoInitialized[videoReel.id] = false;
@@ -171,8 +170,7 @@ class AxisReelsState extends ChangeNotifier {
     final duration = controller.value.duration;
     final position = controller.value.position;
 
-    if (duration.inMilliseconds > 0 &&
-        position.inMilliseconds >= duration.inMilliseconds - 100) {
+    if (duration.inMilliseconds > 0 && position.inMilliseconds >= duration.inMilliseconds - 100) {
       final currentLoops = _videoLoopCounts[videoId] ?? 0;
       _videoLoopCounts[videoId] = currentLoops + 1;
 
@@ -207,7 +205,7 @@ class AxisReelsState extends ChangeNotifier {
 
       // Add to playing list if not already there
       _playingVideoIds.remove(videoId); // Remove if exists
-      _playingVideoIds.add(videoId);    // Add to end (most recent)
+      _playingVideoIds.add(videoId); // Add to end (most recent)
 
       notifyListeners();
     }
